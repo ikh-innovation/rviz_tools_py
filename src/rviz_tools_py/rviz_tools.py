@@ -41,7 +41,7 @@ import rospy
 import tf  # tf/transformations.py
 from std_msgs.msg import Header, ColorRGBA
 from geometry_msgs.msg import Transform
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
 from geometry_msgs.msg import Point, Point32
 from geometry_msgs.msg import Vector3
 from geometry_msgs.msg import Quaternion
@@ -392,6 +392,17 @@ class PathMarker(RVizMarkerBase):
                 point = Point(position.x, position.y, position.z)
                 self.marker.points.append(point)
                 self.marker.colors.append(self.getColor())
+            elif type(points[i]) == PoseStamped:
+                # Start of segment is previous point
+                position = points[i-1].pose.position
+                point = Point(position.x, position.y, position.z)
+                self.marker.points.append(point)
+                self.marker.colors.append(self.getColor())
+                # End of segment is current point
+                position = points[i].pose.position
+                point = Point(position.x, position.y, position.z)
+                self.marker.points.append(point)
+                self.marker.colors.append(self.getColor())
             elif (type(points[i]) == numpy.matrix) or (type(points[i]) == numpy.ndarray):
                 # Start of segment is previous point
                 pose = mat_to_pose(points[i-1])
@@ -451,7 +462,7 @@ class CylinderMarker(RVizMarkerBase):
         self.scale.z = h
 
 
-class AxisMarker():
+class AxisMarker(object):
     def __init__(self, ns="", frame_id="base_link", pose=Pose(), lifetime=rospy.Duration(0), id=0 ):
         self.pose = pose
         self.x_axis_marker = CylinderMarker(ns+"_x",frame_id,Pose(),lifetime,id)
