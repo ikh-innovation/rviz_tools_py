@@ -304,9 +304,11 @@ class RVizMarkerBase(object):
 
 class CubeMarker(RVizMarkerBase):
     def __init__(self, ns="", frame_id="base_link", pose=Pose(), lifetime=rospy.Duration(0), id=0 ):
-        RVizMarkerBase.__init__(type=Marker().CUBE, frame_id=frame_id, pose=pose, lifetime=lifetime, id=id, ns=ns)
+        RVizMarkerBase.__init__(self,type=Marker().CUBE, frame_id=frame_id, pose=pose, lifetime=lifetime, id=id, ns=ns)
         self.marker = Marker()
         self.scale = Vector3()
+        self.alpha = 1.0
+        self.setMarkerColor('random')
     
     def getMarker(self):
         return self.marker
@@ -315,11 +317,12 @@ class CubeMarker(RVizMarkerBase):
         self.marker.action = self.getAction()
         self.marker.id = self.getID()
         self.marker.ns = self.getNameSpace()
-        self.marker.color = self.getColor()
+        self.marker.color = self.getMarkerColor()
         self.marker.header.frame_id = self.getFrameId()
         self.marker.header.stamp = rospy.Time.now()
         self.marker.lifetime = self.getLifeTime()
         self.marker.pose = self.getPose()
+        self.marker.type = self.getType()
         self.marker.action = self.getAction()
 
     def setScale(self,scale):
@@ -335,9 +338,11 @@ class CubeMarker(RVizMarkerBase):
     
 class PathMarker(RVizMarkerBase):
     def __init__(self, ns="", frame_id="base_link", pose=Pose(), lifetime=rospy.Duration(0), id=0 ):
-        RVizMarkerBase.__init__(type=Marker().LINE_LIST, frame_id=frame_id, pose=pose, lifetime=lifetime, id=id, ns=ns)
+        RVizMarkerBase.__init__(self, type=Marker().LINE_STRIP, frame_id=frame_id, pose=pose, lifetime=lifetime, id=id, ns=ns)
         self.marker = Marker()
         self.scale = Vector3()
+        self.alpha = 1.0
+        self.setMarkerColor('random')
     
     def getMarker(self):
         self.updateMarker()
@@ -347,12 +352,13 @@ class PathMarker(RVizMarkerBase):
         self.marker.action = self.getAction()
         self.marker.id = self.getID()
         self.marker.ns = self.getNameSpace()
-        self.marker.color = self.getColor()
+        self.marker.color = self.getMarkerColor()
         self.marker.header.frame_id = self.getFrameId()
         self.marker.header.stamp = rospy.Time.now()
         self.marker.lifetime = self.getLifeTime()
         self.marker.pose = self.getPose()
         self.marker.action = self.getAction()
+        self.marker.type = self.getType()
         self.marker.scale = self.scale
 
     def setScale(self,scale):
@@ -371,61 +377,42 @@ class PathMarker(RVizMarkerBase):
     
 
     def setPathPoints(self,points):
-        for i in range(1, len(points)):
+        for p in points:
+            self.addPathPoint(p)    
+            
     
-            # Each path waypoint needs to be a ROS Point Msg
-            if type(points[i]) == Point:
-                # Start of segment is previous point
-                self.marker.points.append(points[i-1])
-                self.marker.colors.append(self.getColor())
-                # End of segment is current point
-                self.marker.points.append(points[i])
-                self.marker.colors.append(self.getColor())
-            elif type(points[i]) == Pose:
-                # Start of segment is previous point
-                position = points[i-1].position
-                point = Point(position.x, position.y, position.z)
-                self.marker.points.append(point)
-                self.marker.colors.append(self.getColor())
-                # End of segment is current point
-                position = points[i].position
-                point = Point(position.x, position.y, position.z)
-                self.marker.points.append(point)
-                self.marker.colors.append(self.getColor())
-            elif type(points[i]) == PoseStamped:
-                # Start of segment is previous point
-                position = points[i-1].pose.position
-                point = Point(position.x, position.y, position.z)
-                self.marker.points.append(point)
-                self.marker.colors.append(self.getColor())
-                # End of segment is current point
-                position = points[i].pose.position
-                point = Point(position.x, position.y, position.z)
-                self.marker.points.append(point)
-                self.marker.colors.append(self.getColor())
-            elif (type(points[i]) == numpy.matrix) or (type(points[i]) == numpy.ndarray):
-                # Start of segment is previous point
-                pose = mat_to_pose(points[i-1])
-                position = pose.position
-                point = Point(position.x, position.y, position.z)
-                self.marker.points.append(point)
-                self.marker.colors.append(self.getColor())
-                # End of segment is current point
-                pose = mat_to_pose(points[i])
-                position = pose.position
-                point = Point(position.x, position.y, position.z)
-                self.marker.points.append(point)
-                self.marker.colors.append(self.getColor())           
-            else:
-                rospy.logerr("path list contains unsupported type '%s' in publishPath()", type(points[i]).__name__)
-                return False
-
+    def addPathPoint(self,p):    
+        # Each path waypoint needs to be a ROS Point Msg
+        if type(p) == Point:
+            self.marker.points.append(p)
+            self.marker.colors.append(self.getMarkerColor())
+        elif type(p) == Pose:
+            position = p.position
+            point = Point(position.x, position.y, position.z)
+            self.marker.points.append(point)
+            self.marker.colors.append(self.getMarkerColor())
+        elif type(p) == PoseStamped:
+            position = p.pose.position
+            point = Point(position.x, position.y, position.z)
+            self.marker.points.append(point)
+            self.marker.colors.append(self.getMarkerColor())
+        elif (type(p) == numpy.matrix) or (type(p) == numpy.ndarray):
+            pose = mat_to_pose(p)
+            position = pose.position
+            point = Point(position.x, position.y, position.z)
+            self.marker.points.append(point)
+            self.marker.colors.append(self.getMarkerColor())        
+        else:
+            rospy.logerr("path list contains unsupported type '%s' in publishPath()", type(p).__name__)
+            return False
 
 class CylinderMarker(RVizMarkerBase):
     def __init__(self, ns="", frame_id="base_link", pose=Pose(), lifetime=rospy.Duration(0), id=0 ):
-        RVizMarkerBase.__init__(type=Marker().CYLINDER, frame_id=frame_id, pose=pose, lifetime=lifetime, id=id, ns=ns)
+        RVizMarkerBase.__init__(self,type=Marker().CYLINDER, frame_id=frame_id, pose=pose, lifetime=lifetime, id=id, ns=ns)
         self.marker = Marker()
         self.scale = Vector3()
+        self.alpha = 1.0
+        self.setMarkerColor('random')
     
     def getMarker(self):
         self.updateMarker()
@@ -435,12 +422,13 @@ class CylinderMarker(RVizMarkerBase):
         self.marker.action = self.getAction()
         self.marker.id = self.getID()
         self.marker.ns = self.getNameSpace()
-        self.marker.color = self.getColor()
+        self.marker.color = self.getMarkerColor()
         self.marker.header.frame_id = self.getFrameId()
         self.marker.header.stamp = rospy.Time.now()
         self.marker.lifetime = self.getLifeTime()
         self.marker.pose = self.getPose()
         self.marker.action = self.getAction()
+        self.marker.type = self.getType()
         self.marker.scale = self.scale
 
     def setScale(self,scale):
@@ -460,7 +448,6 @@ class CylinderMarker(RVizMarkerBase):
     
     def setHeight(self,h):
         self.scale.z = h
-
 
 class AxisMarker(object):
     def __init__(self, ns="", frame_id="base_link", pose=Pose(), lifetime=rospy.Duration(0), id=0 ):
@@ -488,27 +475,27 @@ class AxisMarker(object):
     def _updateAxis(self):
         t = tf.transformations.translation_matrix( (self.length/2.0, 0.0, 0.0) )
         r = tf.transformations.rotation_matrix(numpy.pi/2.0, (0,1,0))
-        m = tf.transformations.concatenate_matrices(self.pose, t, r)
+        m = tf.transformations.concatenate_matrices(pose_to_mat(self.pose), t, r)
         x_pose = mat_to_pose(m)
         self.x_axis_marker.setPose(x_pose)
 
         t = tf.transformations.translation_matrix( (0.0, self.length/2.0, 0.0) )
         r = tf.transformations.rotation_matrix(numpy.pi/2.0, (1,0,0))
-        m = tf.transformations.concatenate_matrices(self.pose, t, r)
+        m = tf.transformations.concatenate_matrices(pose_to_mat(self.pose), t, r)
         y_pose = mat_to_pose(m)
         self.y_axis_marker.setPose(y_pose)
 
 
         t = tf.transformations.translation_matrix( (0.0, 0.0, self.length/2.0) )
         r = tf.transformations.rotation_matrix(0.0, (0,0,1))
-        m = tf.transformations.concatenate_matrices(self.pose, t, r)
+        m = tf.transformations.concatenate_matrices(pose_to_mat(self.pose), t, r)
         z_pose = mat_to_pose(m)
         self.z_axis_marker.setPose(z_pose)
 
 
     def getMarker(self):
         self._updateAxis()
-        return [self.x_axis_marker,self.y_axis_marker,self.z_axis_marker]
+        return [self.x_axis_marker.getMarker(),self.y_axis_marker.getMarker(),self.z_axis_marker.getMarker()]
 
     def setPose(self, pose):
         # Convert input pose to a ROS Pose Msg
